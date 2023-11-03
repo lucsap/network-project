@@ -15,8 +15,36 @@ irc.bind((HOST, PORT))
 irc.listen()
 print(f"Servidor IRC esperando por conexões em {HOST}:{PORT}...")
 
+usuarios = {}
+
 clients = []
 nicknames = []
+
+def verificaComando(message):
+    comando = message[0]
+    if comando == "/":
+        return True
+    else:
+        return False
+
+def executaComando(message):
+
+    comando = message.split(" ")
+
+    if comando[0] == "/quit":
+        index = clients.index(client)
+        clients.remove(client)
+        client.close()
+        nickname = nicknames[index]
+        nicknames.remove(nickname)
+        sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'))
+
+    if comando[0] == "/list":
+        sendMessage("Lista de usuários conectados: \n".encode('utf-8'))
+        for key in usuarios:
+            sendMessage(f"- {usuarios[key]}\n".encode('utf-8'))
+        # for nickname in nicknames:
+        #     sendMessage(f"- {nickname}\n".encode('utf-8'))
 
 def sendMessage(message):
     for client in clients:
@@ -26,8 +54,15 @@ def handle(client, nickname):
     while True:
         try:
             message = client.recv(1024).decode('utf-8')
-            sendMessage(f"{nickname}: {message}".encode('utf-8'))
+            if verificaComando(message):
+                executaComando(message)
+            else:
+                sendMessage(f"{nickname}: {message}".encode('utf-8'))
         except:
+            #
+            usuarios.pop(client)
+            #
+            print(f"Usuários: {usuarios}")
             index = clients.index(client)
             clients.remove(client)
             client.close()
@@ -43,7 +78,13 @@ def receive():
         nickname = client.recv(1024).decode('utf-8')
         nicknames.append(nickname)
  
-        print(f"O usuário {nickname} se conectou no servidor! endereço: {address}")
+        #
+        usuarios[client] = nickname
+        #
+
+        print(usuarios)
+
+        print(f"O usuário {nickname} se conectou no servidor! Endereço: {address}")
         sendMessage(f"{nickname} entrou no chat.".encode('utf-8'))
         clients.append(client)
         client.send('Conectado ao servidor!'.encode('utf-8'))
