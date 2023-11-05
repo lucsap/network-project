@@ -33,18 +33,17 @@ def verificaComando(message):
 
 def executaComando(client, message):
 
-    comando = message.split(" ")
+    comando = message.split(" ", 2)
 
-    # if comando[0] == "/join":
-    #     channel = comando[1]
-    #     if channel in channels:
-    #         channels[channel].append(client)
-    #     else:
-    #         channels[channel] = [client]
-    #     sendMessage(f"{usuarios[client]} entrou no canal {channel}".encode('utf-8'))
-    #     print(channels)
-
-    if comando[0] == "/quit":
+    if comando[0] == "/privmsg" or comando[0] == "/msg":
+        user = comando[1]
+    
+        for key in usuarios:
+            if usuarios[key] == user:
+                key.send(f"PRIVMSG {usuarios[client]}: {comando[2]}".encode('utf-8'))
+                break
+        
+    if comando[0] == "/quit" or comando[0] == "/q":
         if client in usuarios:
 
             # Remove o usuário da lista de usuários
@@ -56,7 +55,7 @@ def executaComando(client, message):
 
             sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'), client)
 
-    if comando[0] == "/list":
+    if comando[0] == "/list" or comando[0] == "/l":
         client.send("Lista de usuários conectados: \n".encode('utf-8'))
         for key in usuarios:
             client.send(f"- {usuarios[key]}".encode('utf-8'))
