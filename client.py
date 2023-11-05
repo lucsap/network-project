@@ -1,4 +1,6 @@
+import time
 # Importação das bibliotecas (ambas são nativas)
+import sys
 import socket
 import threading
 
@@ -19,8 +21,14 @@ def receive():
     while True:
         try:
             message = client.recv(1024).decode('utf-8')
-            if message == 'USERNAME':                                                                                            
+
+            if message == 'USERNAME':                       
                 client.send(nickname.encode('utf-8'))
+            elif message == 'NICKNAME_AVAILABLE':
+                print("Nickname válido... Em momentos você será conectado!")
+            elif message == 'NICKNAME_ALREADY_EXISTS':
+                print("Nickname já está em uso. Por favor, escolha outro.")
+                client.close()
             else:
                 print(message)
         except:
