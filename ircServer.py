@@ -1,3 +1,4 @@
+import time
 # Importação das bibliotecas (ambas são nativas)
 import socket
 import threading
@@ -16,9 +17,12 @@ irc.listen()
 print(f"Servidor IRC esperando por conexões em {HOST}:{PORT}...")
 
 usuarios = {}
-
-clients = []
 nicknames = []
+
+channels = {
+    "#cn1": []
+}
+
 
 def verificaComando(message):
     comando = message[0]
@@ -27,69 +31,88 @@ def verificaComando(message):
     else:
         return False
 
-def executaComando(message):
+def executaComando(client, message):
 
     comando = message.split(" ")
 
+    # if comando[0] == "/join":
+    #     channel = comando[1]
+    #     if channel in channels:
+    #         channels[channel].append(client)
+    #     else:
+    #         channels[channel] = [client]
+    #     sendMessage(f"{usuarios[client]} entrou no canal {channel}".encode('utf-8'))
+    #     print(channels)
+
     if comando[0] == "/quit":
-        index = clients.index(client)
-        clients.remove(client)
-        client.close()
-        nickname = nicknames[index]
-        nicknames.remove(nickname)
-        sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'))
+        if client in usuarios:
+
+            # Remove o usuário da lista de usuários
+            nickname = usuarios.pop(client)
+            nicknames.remove(nickname)
+
+
+            client.close()
+
+            sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'), client)
 
     if comando[0] == "/list":
-        sendMessage("Lista de usuários conectados: \n".encode('utf-8'))
+        client.send("Lista de usuários conectados: \n".encode('utf-8'))
         for key in usuarios:
-            sendMessage(f"- {usuarios[key]}\n".encode('utf-8'))
-        # for nickname in nicknames:
-        #     sendMessage(f"- {nickname}\n".encode('utf-8'))
+            client.send(f"- {usuarios[key]}".encode('utf-8'))
 
-def sendMessage(message):
-    for client in clients:
-        client.send(message)
+
+def sendMessage(message, usr_client):
+    try:
+        for client in usuarios:
+            if client and client != usr_client:
+                client.send(message)
+    except:
+        print("Erro ao enviar mensagem.")
 
 def handle(client, nickname):
     while True:
         try:
             message = client.recv(1024).decode('utf-8')
             if verificaComando(message):
-                executaComando(message)
+                executaComando(client, message)
             else:
-                sendMessage(f"{nickname}: {message}".encode('utf-8'))
+                sendMessage(f"{nickname}: {message}".encode('utf-8'), client)
         except:
-            #
-            usuarios.pop(client)
-            #
-            print(f"Usuários: {usuarios}")
-            index = clients.index(client)
-            clients.remove(client)
+            # Remove o usuário da lista de usuários
+            if client in usuarios:
+                nickname = usuarios.pop(client)
+                nicknames.remove(nickname)
+                sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'), client)
+
             client.close()
-            nickname = nicknames[index]
-            nicknames.remove(nickname)
-            sendMessage(f"{nickname} desconectou-se do servidor.".encode('utf-8'))
+
             break
 
 def receive():
     while True:
         client, address = irc.accept()
         client.send("USERNAME".encode('utf-8'))
+
         nickname = client.recv(1024).decode('utf-8')
-        nicknames.append(nickname)
  
-        #
-        usuarios[client] = nickname
-        #
+        if nickname in nicknames:
+            client.send("NICKNAME_ALREADY_EXISTS".encode('utf-8'))
+            client.close()
+            
+        else:
+            client.send('NICKNAME_AVAILABLE'.encode('utf-8'))
 
-        print(usuarios)
+            # Adiciona o usuário na lista de usuários
+            usuarios[client] = nickname
+            # Adiciona o nickname na lista de nicknames
+            nicknames.append(nickname)
 
-        print(f"O usuário {nickname} se conectou no servidor! Endereço: {address}")
-        sendMessage(f"{nickname} entrou no chat.".encode('utf-8'))
-        clients.append(client)
-        client.send('Conectado ao servidor!'.encode('utf-8'))
-                    	
-        thread = threading.Thread(target=handle, args=(client, nickname, ))
-        thread.start()
+            print(f"O usuário {nickname} se conectou no servidor! Endereço: {address}")
+            sendMessage(f"{nickname} entrou no chat.".encode('utf-8'), client)
+            client.send('Conectado ao servidor!'.encode('utf-8'))
+                            
+            thread = threading.Thread(target=handle, args=(client, nickname, ))
+            thread.start()
 
 receive()
