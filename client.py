@@ -1,4 +1,4 @@
-import time
+# import time
 # Importação das bibliotecas (ambas são nativas)
 import sys
 import socket

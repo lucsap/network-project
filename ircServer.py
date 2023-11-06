@@ -1,4 +1,4 @@
-import time
+# import time
 # Importação das bibliotecas (ambas são nativas)
 import socket
 import threading
@@ -58,7 +58,7 @@ def executaComando(client, message):
     if comando[0] == "/list" or comando[0] == "/l":
         client.send("Lista de usuários conectados: \n".encode('utf-8'))
         for key in usuarios:
-            client.send(f"- {usuarios[key]}".encode('utf-8'))
+            client.send(f"- {usuarios[key]}\n".encode('utf-8'))
 
 
 def sendMessage(message, usr_client):
